@@ -11,7 +11,7 @@
     "cycle": "tsx src/run-once.ts"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
