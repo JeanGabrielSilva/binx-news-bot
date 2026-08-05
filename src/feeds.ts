@@ -13,7 +13,8 @@ export interface FeedItem {
 const FEEDS: { name: string; url: string }[] = [
   { name: "Cointelegraph Brasil", url: "https://cointelegraph.com.br/rss" },
   { name: "Livecoins", url: "https://livecoins.com.br/feed/" },
-  { name: "Portal do Bitcoin", url: "https://portaldobitcoin.uol.com.br/feed/" },
+  { name: "BeInCrypto Brasil", url: "https://br.beincrypto.com/feed/" },
+  { name: "CriptoFácil", url: "https://criptofacil.com/feed/" },
   { name: "CoinDesk", url: "https://www.coindesk.com/arc/outboundfeeds/rss/" },
 ];
 
