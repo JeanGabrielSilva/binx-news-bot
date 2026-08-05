@@ -29,6 +29,24 @@ create table if not exists clicks (
 create index if not exists idx_posts_article on posts(article_id);
 create index if not exists idx_clicks_post on clicks(post_id);
 
+-- Configurações editáveis pelo painel (linha única, id sempre 1)
+create table if not exists settings (
+  id int primary key default 1 check (id = 1),
+  bot_enabled boolean not null default true,
+  min_importance int not null default 3 check (min_importance between 1 and 5),
+  max_posts_per_cycle int not null default 3 check (max_posts_per_cycle between 1 and 10),
+  affiliate_url text not null default '',
+  post_template text not null default '',
+  updated_at timestamptz not null default now()
+);
+insert into settings (id) values (1) on conflict do nothing;
+
+-- Bloqueia acesso via chave anon/publishable; bot e painel usam service_role (que ignora RLS)
+alter table articles enable row level security;
+alter table posts enable row level security;
+alter table clicks enable row level security;
+alter table settings enable row level security;
+
 -- Métrica pronta: cliques por post, com título e ativo
 create or replace view post_performance as
 select

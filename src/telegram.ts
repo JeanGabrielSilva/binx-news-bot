@@ -8,27 +8,47 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** Monta o texto do post em HTML do Telegram, com CTA neutro e disclaimer fixo. */
-export function buildPostText(article: ArticleRow, summary: Summary, postId: string): string {
-  const lines = [
-    `<b>${escapeHtml(summary.titulo)}</b>`,
-    "",
-    escapeHtml(summary.resumo),
-    "",
-    `📰 <a href="${article.url}">Fonte: ${escapeHtml(article.source)}</a>`,
-  ];
+/**
+ * Template padrão do post. Placeholders: {titulo} {resumo} {ativo} {fonte} {cta}.
+ * O painel pode sobrescrever via settings.post_template.
+ */
+export const DEFAULT_TEMPLATE = ["<b>{titulo}</b>", "", "{resumo}", "", "📰 {fonte}", "{cta}"].join("\n");
 
-  // CTA só entra quando o link de afiliado estiver configurado
-  if (config.binxAffiliateUrl) {
+/** Disclaimer obrigatório — sempre anexado, independente do template (compliance). */
+const DISCLAIMER = "<i>Conteúdo informativo. Isto não é recomendação de investimento.</i>";
+
+export interface PostLayout {
+  template: string;
+  affiliateUrl: string;
+}
+
+export function buildPostText(
+  article: ArticleRow,
+  summary: Summary,
+  postId: string,
+  layout: PostLayout,
+): string {
+  const fonte = `<a href="${article.url}">Fonte: ${escapeHtml(article.source)}</a>`;
+
+  let cta = "";
+  if (layout.affiliateUrl) {
     const goLink = `${config.publicBaseUrl.replace(/\/$/, "")}/go/${postId}`;
-    const ctaLabel = summary.ativo
+    const label = summary.ativo
       ? `Negocie ${escapeHtml(summary.ativo)} na BingX com condições especiais`
       : "Abra sua conta na BingX com condições especiais";
-    lines.push(`📈 <a href="${goLink}">${ctaLabel}</a>`);
+    cta = `📈 <a href="${goLink}">${label}</a>`;
   }
 
-  lines.push("", `<i>Conteúdo informativo. Isto não é recomendação de investimento.</i>`);
-  return lines.join("\n");
+  const body = (layout.template || DEFAULT_TEMPLATE)
+    .replaceAll("{titulo}", escapeHtml(summary.titulo))
+    .replaceAll("{resumo}", escapeHtml(summary.resumo))
+    .replaceAll("{ativo}", escapeHtml(summary.ativo))
+    .replaceAll("{fonte}", fonte)
+    .replaceAll("{cta}", cta)
+    .replace(/\n{3,}/g, "\n\n")
+    .trimEnd();
+
+  return `${body}\n\n${DISCLAIMER}`;
 }
 
 /** Publica no canal e devolve o message_id do Telegram. */

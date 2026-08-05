@@ -73,6 +73,32 @@ export async function attachTelegramMessageId(postId: string, messageId: number)
   if (error) console.warn(`Supabase (attachTelegramMessageId): ${error.message}`);
 }
 
+export interface BotSettings {
+  bot_enabled: boolean;
+  min_importance: number;
+  max_posts_per_cycle: number;
+  affiliate_url: string;
+  post_template: string;
+}
+
+/**
+ * Lê as configurações editáveis pelo painel (tabela settings, linha única).
+ * Devolve null se a tabela ainda não existir — o bot cai no fallback do .env.
+ */
+export async function getSettings(): Promise<BotSettings | null> {
+  const { data, error } = await supabase
+    .from("settings")
+    .select("bot_enabled, min_importance, max_posts_per_cycle, affiliate_url, post_template")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn(`Supabase (getSettings): ${error.message} — usando fallback do .env`);
+    return null;
+  }
+  return data;
+}
+
 /** Loga um clique no link de afiliado vindo do redirect /go/:postId. */
 export async function recordClick(postId: string, userAgent: string, referer: string): Promise<void> {
   const { error } = await supabase.from("clicks").insert({
