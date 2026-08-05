@@ -17,7 +17,15 @@ const FEEDS: { name: string; url: string }[] = [
   { name: "CoinDesk", url: "https://www.coindesk.com/arc/outboundfeeds/rss/" },
 ];
 
-const parser = new Parser({ timeout: 15000 });
+const parser = new Parser({
+  timeout: 15000,
+  headers: {
+    // Alguns veículos retornam 403 para user-agents de bot/datacenter
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+    Accept: "application/rss+xml, application/xml;q=0.9, */*;q=0.8",
+  },
+});
 
 /** Busca todos os feeds e devolve os itens normalizados, mais recentes primeiro. */
 export async function fetchAllFeeds(): Promise<FeedItem[]> {
