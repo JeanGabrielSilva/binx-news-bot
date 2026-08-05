@@ -9,6 +9,11 @@ import { buildPostText, sendToChannel } from "./telegram";
  * publica no canal os que passarem no filtro de importância.
  */
 export async function runCycle(): Promise<void> {
+  if (!config.botEnabled) {
+    console.log(`[${new Date().toISOString()}] BOT_ENABLED=false — publicações pausadas.`);
+    return;
+  }
+
   console.log(`[${new Date().toISOString()}] Iniciando ciclo...`);
 
   const items = await fetchAllFeeds();

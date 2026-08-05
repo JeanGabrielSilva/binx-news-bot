@@ -27,6 +27,9 @@ export const config = {
   /** URL pública do serviço no Railway, usada nos links /go de rastreio. */
   publicBaseUrl: process.env.PUBLIC_BASE_URL ?? "http://localhost:3000",
 
+  /** "false" pausa as publicações sem derrubar o serviço (redirect continua no ar). */
+  botEnabled: (process.env.BOT_ENABLED ?? "true").toLowerCase() !== "false",
+
   port: Number(process.env.PORT ?? 3000),
   /** Cron do ciclo de busca (padrão: a cada 15 minutos). */
   cronSchedule: process.env.CRON_SCHEDULE ?? "*/15 * * * *",
