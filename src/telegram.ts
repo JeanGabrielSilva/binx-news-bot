@@ -9,10 +9,18 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Template padrão do post. Placeholders: {titulo} {resumo} {ativo} {fonte} {cta}.
- * O painel pode sobrescrever via settings.post_template.
+ * Template padrão do post. Placeholders: {titulo} {resumo} {ativo} {ativo_linha}
+ * {fonte} {cta}. O painel pode sobrescrever via settings.post_template.
  */
-export const DEFAULT_TEMPLATE = ["<b>{titulo}</b>", "", "{resumo}", "", "📰 {fonte}", "{cta}"].join("\n");
+export const DEFAULT_TEMPLATE = [
+  "<b>{titulo}</b>",
+  "",
+  "{resumo}",
+  "",
+  "{ativo_linha}",
+  "📰 {fonte}",
+  "{cta}",
+].join("\n");
 
 /** Disclaimer obrigatório — sempre anexado, independente do template (compliance). */
 const DISCLAIMER = "<i>Conteúdo informativo. Isto não é recomendação de investimento.</i>";
@@ -39,9 +47,13 @@ export function buildPostText(
     cta = `📈 <a href="${goLink}">${label}</a>`;
   }
 
+  // Linha do ativo só existe quando a notícia tem um ativo claro (vira hashtag pesquisável)
+  const ativoLinha = summary.ativo ? `📊 Ativo: #${escapeHtml(summary.ativo.toUpperCase())}` : "";
+
   const body = (layout.template || DEFAULT_TEMPLATE)
     .replaceAll("{titulo}", escapeHtml(summary.titulo))
     .replaceAll("{resumo}", escapeHtml(summary.resumo))
+    .replaceAll("{ativo_linha}", ativoLinha)
     .replaceAll("{ativo}", escapeHtml(summary.ativo))
     .replaceAll("{fonte}", fonte)
     .replaceAll("{cta}", cta)

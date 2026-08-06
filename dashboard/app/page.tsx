@@ -3,7 +3,15 @@ import { toggleBot, saveSettings } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_TEMPLATE = ["<b>{titulo}</b>", "", "{resumo}", "", "📰 {fonte}", "{cta}"].join("\n");
+const DEFAULT_TEMPLATE = [
+  "<b>{titulo}</b>",
+  "",
+  "{resumo}",
+  "",
+  "{ativo_linha}",
+  "📰 {fonte}",
+  "{cta}",
+].join("\n");
 
 interface PerformanceRow {
   post_id: string;
@@ -14,7 +22,11 @@ interface PerformanceRow {
   clicks: number;
 }
 
-export default async function Dashboard() {
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: { salvo?: string };
+}) {
   const supabase = serverSupabase();
 
   const [{ data: settings }, { data: performance }, { count: totalArticles }] = await Promise.all([
@@ -55,6 +67,12 @@ export default async function Dashboard() {
 
       <section className="card">
         <h2>Configurações</h2>
+        {searchParams.salvo === "ok" && (
+          <p className="saved-ok">✓ Configurações salvas com sucesso. Valem no próximo ciclo (até 15 min).</p>
+        )}
+        {searchParams.salvo === "erro" && (
+          <p className="saved-err">✗ Erro ao salvar — tente novamente.</p>
+        )}
         <form action={saveSettings} className="settings-form">
           <label>
             Importância mínima (1–5)
@@ -69,7 +87,7 @@ export default async function Dashboard() {
             <input type="url" name="affiliate_url" placeholder="https://bingx.com/invite/..." defaultValue={settings?.affiliate_url ?? ""} />
           </label>
           <label>
-            Layout do post — placeholders: {"{titulo} {resumo} {ativo} {fonte} {cta}"} (HTML do Telegram: b, i, a)
+            Layout do post — placeholders: {"{titulo} {resumo} {ativo} {ativo_linha} {fonte} {cta}"} (HTML do Telegram: b, i, a)
             <textarea name="post_template" rows={8} defaultValue={settings?.post_template || DEFAULT_TEMPLATE} />
           </label>
           <p className="hint">O disclaimer "não é recomendação de investimento" é sempre anexado automaticamente.</p>

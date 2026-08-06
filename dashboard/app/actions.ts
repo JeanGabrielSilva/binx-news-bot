@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { serverSupabase } from "../lib/supabase";
 
 export async function toggleBot(): Promise<void> {
@@ -18,7 +19,7 @@ export async function saveSettings(formData: FormData): Promise<void> {
   const maxPosts = Number(formData.get("max_posts_per_cycle") ?? 3);
 
   const supabase = serverSupabase();
-  await supabase
+  const { error } = await supabase
     .from("settings")
     .update({
       min_importance: Math.min(5, Math.max(1, minImportance)),
@@ -28,5 +29,7 @@ export async function saveSettings(formData: FormData): Promise<void> {
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);
+
   revalidatePath("/");
+  redirect(error ? "/?salvo=erro" : "/?salvo=ok");
 }
