@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { serverSupabase } from "../lib/supabase";
 import { railwayCosts } from "../lib/railway";
+import { bingxConversions } from "../lib/bingx";
 import { toggleBot, saveSettings, queueArticle, unqueueArticle, discardArticle } from "./actions";
 import { ActivityChart } from "./chart";
 
@@ -172,8 +173,12 @@ export default async function Dashboard({
     { key: "geral", label: "Visão geral" },
     { key: "fila", label: `Fila (${filaRows.length})` },
     { key: "avaliadas", label: `Avaliadas (${avaliadasRows.length})` },
+    { key: "conversoes", label: "Conversões" },
     { key: "config", label: "Configurações" },
   ];
+
+  const conversoes = aba === "conversoes" ? await bingxConversions() : null;
+  const usd = (v: number) => `US$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}`;
 
   return (
     <main className="dash">
@@ -352,6 +357,80 @@ export default async function Dashboard({
             </tbody>
           </table>
         </section>
+      )}
+
+      {aba === "conversoes" && conversoes && (
+        <>
+          {!conversoes.ok && conversoes.reason === "nao_configurado" && (
+            <section className="card">
+              <h2>Conversões (BingX)</h2>
+              <p className="hint">
+                Para ativar: adicione as variáveis <code>BINGX_API_KEY</code> e <code>BINGX_SECRET_KEY</code> no
+                Vercel (Settings → Environment Variables) e faça Redeploy. Use uma chave somente-leitura criada em
+                BingX → User Center → API Management.
+              </p>
+            </section>
+          )}
+          {!conversoes.ok && conversoes.reason !== "nao_configurado" && (
+            <section className="card">
+              <h2>Conversões (BingX)</h2>
+              <p className="saved-err">Erro ao consultar a API da BingX: {conversoes.reason}</p>
+            </section>
+          )}
+          {conversoes.ok && (
+            <>
+              <section className="card">
+                <h2>Meta: US$ 1.000.000 em volume negociado</h2>
+                <div className="progress-outer">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${Math.min(100, (conversoes.volumeTotal / conversoes.goalUsd) * 100)}%` }}
+                  />
+                </div>
+                <p className="hint">
+                  {usd(conversoes.volumeTotal)} de {usd(conversoes.goalUsd)} (
+                  {((conversoes.volumeTotal / conversoes.goalUsd) * 100).toFixed(4)}%) — volume acumulado dos
+                  convidados desde ago/2026, direto da API de agente da BingX. Atualiza a cada 15 min.
+                </p>
+              </section>
+
+              <section className="stats">
+                <div className="stat"><span>{conversoes.invitedTotal}</span>cadastros pelo link</div>
+                <div className="stat"><span>{conversoes.deposited}</span>depositaram</div>
+                <div className="stat"><span>{conversoes.traded}</span>negociaram</div>
+                <div className="stat"><span>{usd(conversoes.commissionTotal)}</span>comissão acumulada</div>
+              </section>
+
+              <section className="stats">
+                <div className="stat"><span>{usd(conversoes.volume30d)}</span>volume — últimos 30 dias</div>
+                <div className="stat"><span>{usd(conversoes.commission30d)}</span>comissão — últimos 30 dias</div>
+              </section>
+
+              <section className="card">
+                <h2>Últimos cadastros</h2>
+                <table>
+                  <thead>
+                    <tr><th>UID</th><th>Cadastro</th><th>KYC</th><th>Depositou</th><th>Negociou</th></tr>
+                  </thead>
+                  <tbody>
+                    {conversoes.recent.map((u) => (
+                      <tr key={u.uid}>
+                        <td>{u.uid}</td>
+                        <td>{fmtDateTime(new Date(u.registerTime))}</td>
+                        <td>{u.kycResult === "true" ? "✓" : "—"}</td>
+                        <td>{u.deposit ? "✓" : "—"}</td>
+                        <td>{u.trade ? "✓" : "—"}</td>
+                      </tr>
+                    ))}
+                    {conversoes.recent.length === 0 && (
+                      <tr><td colSpan={5}>Nenhum cadastro pelo link ainda — divulguem o canal! 🚀</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </section>
+            </>
+          )}
+        </>
       )}
 
       {aba === "config" && (

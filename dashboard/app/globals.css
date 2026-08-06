@@ -91,6 +91,16 @@ th { color: #8b949e; font-weight: 600; }
 .btn-blue { background: #2f81f7; color: #fff; }
 .btn-gray { background: #30363d; color: #e6edf3; }
 
+.progress-outer {
+  width: 100%; height: 22px; background: #0d1117;
+  border: 1px solid #30363d; border-radius: 11px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; min-width: 4px; border-radius: 11px;
+  background: linear-gradient(90deg, #2f81f7, #3fb950);
+  transition: width 0.4s ease;
+}
+
 .chart-wrap svg { width: 100%; height: auto; }
 .chart-legend { display: flex; gap: 18px; margin-top: 8px; font-size: 0.85rem; color: #8b949e; }
 .chart-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; }
