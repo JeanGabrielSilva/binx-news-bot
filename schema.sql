@@ -29,6 +29,16 @@ create table if not exists clicks (
 create index if not exists idx_posts_article on posts(article_id);
 create index if not exists idx_clicks_post on clicks(post_id);
 
+-- Fluxo de avaliação/fila: novo -> (descartado | avaliado | fila) -> publicado
+alter table articles add column if not exists status text not null default 'novo';
+alter table articles add column if not exists relevante boolean;
+alter table articles add column if not exists importancia int;
+alter table articles add column if not exists titulo_post text;
+alter table articles add column if not exists resumo text;
+alter table articles add column if not exists ativo text;
+alter table articles add column if not exists avaliado_em timestamptz;
+create index if not exists idx_articles_status on articles(status);
+
 -- Configurações editáveis pelo painel (linha única, id sempre 1)
 create table if not exists settings (
   id int primary key default 1 check (id = 1),

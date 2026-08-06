@@ -73,6 +73,65 @@ export async function attachTelegramMessageId(postId: string, messageId: number)
   if (error) console.warn(`Supabase (attachTelegramMessageId): ${error.message}`);
 }
 
+export interface EvaluatedArticle extends ArticleRow {
+  status: string;
+  importancia: number | null;
+  titulo_post: string | null;
+  resumo: string | null;
+  ativo: string | null;
+}
+
+interface EvaluationData {
+  relevante: boolean;
+  importancia: number;
+  titulo: string;
+  resumo: string;
+  ativo: string;
+}
+
+/** Grava o resultado da avaliação do Claude e o status resultante. */
+export async function saveEvaluation(
+  articleId: string,
+  evaluation: EvaluationData,
+  status: "fila" | "avaliado" | "descartado",
+): Promise<void> {
+  const { error } = await supabase
+    .from("articles")
+    .update({
+      status,
+      relevante: evaluation.relevante,
+      importancia: evaluation.importancia,
+      titulo_post: evaluation.titulo,
+      resumo: evaluation.resumo,
+      ativo: evaluation.ativo,
+      avaliado_em: new Date().toISOString(),
+    })
+    .eq("id", articleId);
+  if (error) throw new Error(`Supabase (saveEvaluation): ${error.message}`);
+}
+
+/** Artigos na fila de publicação, mais importantes/recentes primeiro. */
+export async function getQueue(limit: number): Promise<EvaluatedArticle[]> {
+  const { data, error } = await supabase
+    .from("articles")
+    .select("id, guid, source, title, url, published_at, status, importancia, titulo_post, resumo, ativo")
+    .eq("status", "fila")
+    .order("importancia", { ascending: false })
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.warn(`Supabase (getQueue): ${error.message} — fila vazia neste ciclo`);
+    return [];
+  }
+  return data ?? [];
+}
+
+export async function markPublished(articleId: string): Promise<void> {
+  const { error } = await supabase.from("articles").update({ status: "publicado" }).eq("id", articleId);
+  if (error) console.warn(`Supabase (markPublished): ${error.message}`);
+}
+
 export interface BotSettings {
   bot_enabled: boolean;
   min_importance: number;

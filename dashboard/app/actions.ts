@@ -31,5 +31,29 @@ export async function saveSettings(formData: FormData): Promise<void> {
     .eq("id", 1);
 
   revalidatePath("/");
-  redirect(error ? "/?salvo=erro" : "/?salvo=ok");
+  redirect(error ? "/?aba=config&salvo=erro" : "/?aba=config&salvo=ok");
+}
+
+async function setArticleStatus(formData: FormData, status: string, backTo: string): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const supabase = serverSupabase();
+  await supabase.from("articles").update({ status }).eq("id", id);
+  revalidatePath("/");
+  redirect(backTo);
+}
+
+/** Move uma notícia avaliada/descartada para a fila de publicação. */
+export async function queueArticle(formData: FormData): Promise<void> {
+  await setArticleStatus(formData, "fila", "/?aba=avaliadas");
+}
+
+/** Tira da fila (volta para avaliadas). */
+export async function unqueueArticle(formData: FormData): Promise<void> {
+  await setArticleStatus(formData, "avaliado", "/?aba=fila");
+}
+
+/** Descarta uma notícia avaliada. */
+export async function discardArticle(formData: FormData): Promise<void> {
+  await setArticleStatus(formData, "descartado", "/?aba=avaliadas");
 }

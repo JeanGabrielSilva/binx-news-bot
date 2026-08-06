@@ -5,14 +5,20 @@ import {
   createPendingPost,
   attachTelegramMessageId,
   getSettings,
+  saveEvaluation,
+  getQueue,
+  markPublished,
 } from "./db";
 import { summarizeArticle } from "./summarize";
 import { buildPostText, sendToChannel, DEFAULT_TEMPLATE } from "./telegram";
 
 /**
- * Um ciclo completo: busca feeds → dedupe no Supabase → resume via Claude →
- * publica no canal os que passarem no filtro de importância.
- * As configurações vêm do painel (tabela settings), com fallback no .env.
+ * Ciclo em duas etapas:
+ * 1. Avaliação — notícias novas são resumidas pelo Claude e classificadas:
+ *    descartado (irrelevante), avaliado (abaixo da nota mínima, revisável no
+ *    painel) ou fila (entra na fila de publicação).
+ * 2. Publicação — os primeiros N da fila são postados no canal.
+ * O painel pode mover artigos entre avaliado <-> fila a qualquer momento.
  */
 export async function runCycle(): Promise<void> {
   const settings = await getSettings();
@@ -30,35 +36,54 @@ export async function runCycle(): Promise<void> {
 
   console.log(`[${new Date().toISOString()}] Iniciando ciclo...`);
 
+  // Etapa 1: buscar e avaliar notícias novas
   const items = await fetchAllFeeds();
   console.log(`Feeds retornaram ${items.length} itens.`);
 
   const newArticles = await insertNewArticles(items);
   console.log(`${newArticles.length} artigos novos após dedupe.`);
-  if (newArticles.length === 0) return;
 
   const snippetByGuid = new Map(items.map((item) => [item.guid, item.snippet]));
-  let posted = 0;
 
   for (const article of newArticles) {
-    if (posted >= maxPosts) break;
-
     try {
       const summary = await summarizeArticle(article, snippetByGuid.get(article.guid) ?? "");
-      if (!summary.relevante || summary.importancia < minImportance) {
-        console.log(`Pulado (${summary.importancia}/5): ${article.title}`);
-        continue;
-      }
+      const status = !summary.relevante
+        ? "descartado"
+        : summary.importancia >= minImportance
+          ? "fila"
+          : "avaliado";
+      await saveEvaluation(article.id, summary, status);
+      console.log(`Avaliado (${summary.importancia}/5 → ${status}): ${article.title}`);
+    } catch (err) {
+      console.error(`Erro ao avaliar "${article.title}":`, err instanceof Error ? err.message : err);
+    }
+  }
 
-      const postId = await createPendingPost(article.id, summary.ativo);
-      const text = buildPostText(article, summary, postId, { template, affiliateUrl });
+  // Etapa 2: publicar os primeiros da fila
+  const queue = await getQueue(maxPosts);
+  let posted = 0;
+
+  for (const item of queue) {
+    try {
+      const summary = {
+        relevante: true,
+        importancia: item.importancia ?? 3,
+        titulo: item.titulo_post ?? item.title,
+        resumo: item.resumo ?? "",
+        ativo: item.ativo ?? "",
+      };
+
+      const postId = await createPendingPost(item.id, summary.ativo);
+      const text = buildPostText(item, summary, postId, { template, affiliateUrl });
       const messageId = await sendToChannel(text);
       await attachTelegramMessageId(postId, messageId);
+      await markPublished(item.id);
 
       posted++;
       console.log(`Publicado (${summary.importancia}/5): ${summary.titulo}`);
     } catch (err) {
-      console.error(`Erro ao processar "${article.title}":`, err instanceof Error ? err.message : err);
+      console.error(`Erro ao publicar "${item.title}":`, err instanceof Error ? err.message : err);
     }
   }
 

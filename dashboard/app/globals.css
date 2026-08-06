@@ -71,3 +71,27 @@ th { color: #8b949e; font-weight: 600; }
   background: #2d1416; border: 1px solid #b62324; color: #f85149;
   border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 0.9rem;
 }
+
+.tabs { display: flex; gap: 6px; margin: 18px 0; flex-wrap: wrap; }
+.tab {
+  padding: 8px 14px; border-radius: 8px; text-decoration: none;
+  color: #8b949e; background: #161b22; border: 1px solid #30363d; font-size: 0.9rem;
+}
+.tab.active { color: #e6edf3; border-color: #2f81f7; background: #14233c; font-weight: 600; }
+
+.resumo { color: #8b949e; font-size: 0.82rem; margin-top: 3px; max-width: 460px; }
+.fonte-link { color: #2f81f7; font-size: 0.8rem; text-decoration: none; }
+
+.acoes { display: flex; flex-direction: column; gap: 6px; }
+.btn-small {
+  border: none; border-radius: 6px; padding: 6px 10px;
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn-blue { background: #2f81f7; color: #fff; }
+.btn-gray { background: #30363d; color: #e6edf3; }
+
+.chart-wrap svg { width: 100%; height: auto; }
+.chart-legend { display: flex; gap: 18px; margin-top: 8px; font-size: 0.85rem; color: #8b949e; }
+.chart-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; }
+.dot-blue { background: #2f81f7; }
+.dot-green { background: #3fb950; }
