@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { serverSupabase } from "../lib/supabase";
+import { railwayCosts } from "../lib/railway";
 import { toggleBot, saveSettings, queueArticle, unqueueArticle, discardArticle } from "./actions";
 import { ActivityChart } from "./chart";
 
@@ -107,9 +108,10 @@ export default async function Dashboard({
     supabase.from("clicks").select("clicked_at").gte("clicked_at", since),
   ]);
 
-  const [{ data: usage }, cambio] = await Promise.all([
+  const [{ data: usage }, cambio, railway] = await Promise.all([
     supabase.from("api_usage").select("cost_usd, created_at").order("created_at", { ascending: false }).limit(5000),
     usdToBrl(),
+    railwayCosts(),
   ]);
 
   // Agregados de custo (USD) por período, no fuso de Brasília
@@ -219,6 +221,30 @@ export default async function Dashboard({
               {" "}Total gasto desde o início do rastreio: {brl(costAll * rate, 4)}
               {trackingStart ? ` (desde ${fmtDateTime(trackingStart)})` : " (nenhuma chamada registrada ainda)"}.
             </p>
+          </section>
+
+          <section className="card">
+            <h2>Infraestrutura (Railway)</h2>
+            {railway.ok ? (
+              <>
+                <div className="stats">
+                  <div className="stat"><span>{brl(railway.currentUsd * rate, 4)}</span>gasto no mês até agora</div>
+                  <div className="stat"><span>{brl(railway.estimatedUsd * rate, 2)}</span>projeção do mês</div>
+                </div>
+                <p className="hint">
+                  Valores calculados sobre o uso de RAM, CPU e tráfego reportados pela API do Railway.
+                  Se vocês estão no plano Hobby, os primeiros US$ 5/mês já estão inclusos na assinatura.
+                </p>
+              </>
+            ) : railway.reason === "nao_configurado" ? (
+              <p className="hint">
+                Para exibir os custos do Railway: crie um token em railway.app → Account Settings → Tokens,
+                copie o Project ID em Settings do projeto, e adicione as variáveis{" "}
+                <code>RAILWAY_API_TOKEN</code> e <code>RAILWAY_PROJECT_ID</code> no Vercel (depois faça Redeploy).
+              </p>
+            ) : (
+              <p className="saved-err">Não foi possível consultar a API do Railway: {railway.reason}</p>
+            )}
           </section>
 
           <section className="card">
