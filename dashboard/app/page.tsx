@@ -39,6 +39,25 @@ interface ArticleItem {
   avaliado_em: string | null;
 }
 
+/** Cotação USD→BRL (AwesomeAPI, cache de 1h; fallback conservador se falhar). */
+async function usdToBrl(): Promise<{ rate: number; live: boolean }> {
+  try {
+    const res = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL", {
+      next: { revalidate: 3600 },
+    });
+    const data = (await res.json()) as { USDBRL?: { bid?: string } };
+    const rate = Number(data.USDBRL?.bid);
+    if (rate > 0) return { rate, live: true };
+  } catch {
+    // segue para o fallback
+  }
+  return { rate: 5.5, live: false };
+}
+
+function brl(value: number, decimals = 2): string {
+  return `R$ ${value.toFixed(decimals).replace(".", ",")}`;
+}
+
 /** Próximo disparo do cron (a cada 15 min, nos quartos de hora). */
 function nextCycleAt(): Date {
   const quarter = 15 * 60 * 1000;
@@ -87,6 +106,42 @@ export default async function Dashboard({
     supabase.from("posts").select("posted_at").gte("posted_at", since),
     supabase.from("clicks").select("clicked_at").gte("clicked_at", since),
   ]);
+
+  const [{ data: usage }, cambio] = await Promise.all([
+    supabase.from("api_usage").select("cost_usd, created_at").order("created_at", { ascending: false }).limit(5000),
+    usdToBrl(),
+  ]);
+
+  // Agregados de custo (USD) por período, no fuso de Brasília
+  const dayKeyOf = (d: Date) => d.toLocaleDateString("pt-BR", { timeZone: TZ });
+  const monthKeyOf = (d: Date) => d.toLocaleDateString("pt-BR", { timeZone: TZ, month: "2-digit", year: "numeric" });
+  const now = new Date();
+  const weekCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  let costToday = 0;
+  let costWeek = 0;
+  let costMonth = 0;
+  let costAll = 0;
+  for (const u of usage ?? []) {
+    const d = new Date(u.created_at);
+    const c = Number(u.cost_usd);
+    costAll += c;
+    if (dayKeyOf(d) === dayKeyOf(now)) costToday += c;
+    if (d.getTime() >= weekCutoff) costWeek += c;
+    if (monthKeyOf(d) === monthKeyOf(now)) costMonth += c;
+  }
+
+  // Média por publicação: custo total rastreado / posts publicados no mesmo período
+  const trackingStart = usage && usage.length > 0 ? usage[usage.length - 1].created_at : null;
+  let postsSinceTracking = 0;
+  if (trackingStart) {
+    const { count } = await supabase
+      .from("posts")
+      .select("id", { count: "exact", head: true })
+      .gte("posted_at", trackingStart);
+    postsSinceTracking = count ?? 0;
+  }
+  const rate = cambio.rate;
+  const avgPerPostBrl = postsSinceTracking > 0 ? (costAll * rate) / postsSinceTracking : 0;
 
   const rows = (performance ?? []) as PerformanceRow[];
   const filaRows = (fila ?? []) as ArticleItem[];
@@ -148,6 +203,22 @@ export default async function Dashboard({
             <div className="stat"><span>{filaRows.length}</span>na fila</div>
             <div className="stat"><span>{totalPosts}</span>posts recentes</div>
             <div className="stat"><span>{totalClicks}</span>cliques no afiliado</div>
+          </section>
+
+          <section className="card">
+            <h2>Gastos com IA (Claude)</h2>
+            <div className="stats">
+              <div className="stat"><span>{brl(costToday * rate, 4)}</span>hoje</div>
+              <div className="stat"><span>{brl(costWeek * rate, 4)}</span>últimos 7 dias</div>
+              <div className="stat"><span>{brl(costMonth * rate, 4)}</span>mês atual</div>
+              <div className="stat"><span className="small-num">{brl(avgPerPostBrl, 8)}</span>média por publicação</div>
+            </div>
+            <p className="hint">
+              Câmbio: US$ 1 = {brl(rate, 4)}
+              {cambio.live ? " (cotação ao vivo, atualizada a cada hora)" : " (cotação padrão — API de câmbio indisponível)"}.
+              {" "}Total gasto desde o início do rastreio: {brl(costAll * rate, 4)}
+              {trackingStart ? ` (desde ${fmtDateTime(trackingStart)})` : " (nenhuma chamada registrada ainda)"}.
+            </p>
           </section>
 
           <section className="card">

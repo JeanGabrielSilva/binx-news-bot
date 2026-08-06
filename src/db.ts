@@ -177,6 +177,24 @@ export async function getSettings(): Promise<BotSettings | null> {
   return data;
 }
 
+/** Registra tokens e custo (USD) de uma chamada à API do Claude. */
+export async function recordApiUsage(params: {
+  articleId: string | null;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+}): Promise<void> {
+  const { error } = await supabase.from("api_usage").insert({
+    article_id: params.articleId,
+    model: params.model,
+    input_tokens: params.inputTokens,
+    output_tokens: params.outputTokens,
+    cost_usd: params.costUsd,
+  });
+  if (error) console.warn(`Supabase (recordApiUsage): ${error.message}`);
+}
+
 /** Loga um clique no link de afiliado vindo do redirect /go/:postId. */
 export async function recordClick(postId: string, userAgent: string, referer: string): Promise<void> {
   const { error } = await supabase.from("clicks").insert({

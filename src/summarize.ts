@@ -1,8 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "./config";
+import { recordApiUsage } from "./db";
 import type { ArticleRow } from "./db";
 
 const client = new Anthropic({ apiKey: config.anthropicApiKey });
+
+/** Preço por milhão de tokens (USD) — tabela oficial da Anthropic. */
+const PRICE_PER_MTOK_USD: Record<string, { input: number; output: number }> = {
+  "claude-haiku-4-5": { input: 1, output: 5 },
+  "claude-sonnet-5": { input: 3, output: 15 },
+  "claude-opus-5": { input: 5, output: 25 },
+};
 
 export interface Summary {
   relevante: boolean;
@@ -50,6 +58,20 @@ export async function summarizeArticle(article: ArticleRow, snippet: string): Pr
       },
     ],
   });
+
+  // Registra tokens e custo desta chamada (não bloqueia o fluxo se falhar)
+  const price = PRICE_PER_MTOK_USD[config.anthropicModel];
+  if (price) {
+    const costUsd =
+      (response.usage.input_tokens * price.input + response.usage.output_tokens * price.output) / 1_000_000;
+    void recordApiUsage({
+      articleId: article.id,
+      model: config.anthropicModel,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+      costUsd,
+    }).catch(() => {});
+  }
 
   const text = response.content.find((block) => block.type === "text");
   if (!text || text.type !== "text") {

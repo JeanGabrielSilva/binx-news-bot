@@ -57,6 +57,19 @@ alter table posts enable row level security;
 alter table clicks enable row level security;
 alter table settings enable row level security;
 
+-- Custos da API do Claude por chamada
+create table if not exists api_usage (
+  id uuid primary key default gen_random_uuid(),
+  article_id uuid references articles(id) on delete set null,
+  model text not null,
+  input_tokens int not null,
+  output_tokens int not null,
+  cost_usd numeric not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_api_usage_created on api_usage(created_at);
+alter table api_usage enable row level security;
+
 -- Métrica pronta: cliques por post, com título e ativo
 create or replace view post_performance as
 select
