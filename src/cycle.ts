@@ -6,6 +6,7 @@ import {
   attachTelegramMessageId,
   getSettings,
   saveEvaluation,
+  getPendingEvaluation,
   getQueue,
   markPublished,
 } from "./db";
@@ -43,9 +44,11 @@ export async function runCycle(): Promise<void> {
   const newArticles = await insertNewArticles(items);
   console.log(`${newArticles.length} artigos novos após dedupe.`);
 
+  // Avalia tudo que está pendente (novos + eventuais presos de ciclos anteriores)
+  const pending = await getPendingEvaluation(30);
   const snippetByGuid = new Map(items.map((item) => [item.guid, item.snippet]));
 
-  for (const article of newArticles) {
+  for (const article of pending) {
     try {
       const summary = await summarizeArticle(article, snippetByGuid.get(article.guid) ?? "");
       const status = !summary.relevante

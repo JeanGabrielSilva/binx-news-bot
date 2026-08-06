@@ -110,6 +110,25 @@ export async function saveEvaluation(
   if (error) throw new Error(`Supabase (saveEvaluation): ${error.message}`);
 }
 
+/**
+ * Artigos aguardando avaliação (status novo) — cobre tanto os recém-inseridos
+ * quanto os que ficaram presos se um ciclo anterior caiu no meio.
+ */
+export async function getPendingEvaluation(limit: number): Promise<ArticleRow[]> {
+  const { data, error } = await supabase
+    .from("articles")
+    .select("id, guid, source, title, url, published_at")
+    .eq("status", "novo")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.warn(`Supabase (getPendingEvaluation): ${error.message}`);
+    return [];
+  }
+  return data ?? [];
+}
+
 /** Artigos na fila de publicação, mais importantes/recentes primeiro. */
 export async function getQueue(limit: number): Promise<EvaluatedArticle[]> {
   const { data, error } = await supabase
