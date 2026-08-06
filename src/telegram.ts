@@ -22,7 +22,7 @@ export const DEFAULT_TEMPLATE = [
   "{cta}",
 ].join("\n");
 
-/** Disclaimer obrigatório — sempre anexado, independente do template (compliance). */
+/** Disclaimer opcional — renderizado apenas se o template usar {disclaimer}. */
 const DISCLAIMER = "<i>Conteúdo informativo. Isto não é recomendação de investimento.</i>";
 
 export interface PostLayout {
@@ -57,10 +57,11 @@ export function buildPostText(
     .replaceAll("{ativo}", escapeHtml(summary.ativo))
     .replaceAll("{fonte}", fonte)
     .replaceAll("{cta}", cta)
+    .replaceAll("{disclaimer}", DISCLAIMER)
     .replace(/\n{3,}/g, "\n\n")
     .trimEnd();
 
-  return `${body}\n\n${DISCLAIMER}`;
+  return body;
 }
 
 /** Publica no canal e devolve o message_id do Telegram. */

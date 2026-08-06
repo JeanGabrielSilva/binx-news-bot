@@ -46,11 +46,13 @@ cron (15 min) → RSS (Cointelegraph BR, Livecoins, Portal do Bitcoin, CoinDesk)
 No Supabase, a view `post_performance` mostra cliques por post (título, fonte, ativo).
 É ela que diz qual tipo de notícia gera clique no link de afiliado.
 
-## Compliance (não remover)
+## Compliance
 
-- O CTA é neutro ("Negocie X na Binx") e **nunca** manda comprar/vender com base na notícia.
-- Todo post carrega o disclaimer "Isto não é recomendação de investimento".
+- O CTA é neutro ("Negocie X na BingX") e **nunca** manda comprar/vender com base na notícia.
+- O disclaimer "não é recomendação de investimento" é opcional via placeholder `{disclaimer}`
+  no template. Decisão dos donos do canal removê-lo do padrão (ago/2026), contra a recomendação
+  registrada aqui: mantê-lo reduz o risco de caracterização de recomendação de investimento
+  sem credenciamento (CVM).
 - O bot publica **resumo próprio + link para a fonte original** (nada de republicar texto integral).
 
-Esses três pontos evitam problema com a CVM (recomendação de investimento sem credenciamento)
-e com os termos do programa de afiliados. Não altere o prompt/template para linguagem de call.
+Não altere o prompt do avaliador para linguagem de call de compra/venda.

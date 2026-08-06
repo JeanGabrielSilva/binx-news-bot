@@ -456,10 +456,13 @@ export default async function Dashboard({
               <input type="url" name="affiliate_url" placeholder="https://bingx.com/invite/..." defaultValue={settings?.affiliate_url ?? ""} />
             </label>
             <label>
-              Layout do post — placeholders: {"{titulo} {resumo} {ativo} {ativo_linha} {fonte} {cta}"} (HTML do Telegram: b, i, a)
+              Layout do post — placeholders: {"{titulo} {resumo} {ativo} {ativo_linha} {fonte} {cta} {disclaimer}"} (HTML do Telegram: b, i, a)
               <textarea name="post_template" rows={8} defaultValue={settings?.post_template || DEFAULT_TEMPLATE} />
             </label>
-            <p className="hint">O disclaimer "não é recomendação de investimento" é sempre anexado automaticamente.</p>
+            <p className="hint">
+              O disclaimer é opcional: adicione {"{disclaimer}"} ao template para incluir a linha
+              "não é recomendação de investimento" (recomendado por proteção jurídica).
+            </p>
             <button type="submit">Salvar configurações</button>
           </form>
         </section>
